@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Training prototype of a parking space rental app for Dubai. Sample listings, no real payments.">
+<title>Park’N’Pay Survey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: left rail + wide content on large monitors, tab bar on phones.
+   Palette: deep navy ground, amber (parking-sign) accent, blue-tinted neutrals. */
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --surface-2:#E9EDF4; --ink:#0E1B2E; --muted:#56667E; --line:#D9E0EB;
+  --primary:#102B4C; --on-primary:#FFFFFF; --accent:#F2A413; --on-accent:#2B1D00; --accent-bg:#FDF0D3;
+  --side:#0F2744; --side-ink:#D5E0F0; --side-muted:#8FA3C0; --side-line:#233E63;
+  --good:#17804F; --good-bg:#E2F4EA; --bad:#B83232; --bad-bg:#FBE6E6;
+  --sea:#CFE0F3; --land:#EAE6DA; --road:#FFFFFF; --pin:#102B4C; --pin-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(14,27,46,.06),0 10px 28px rgba(14,27,46,.07);
+  --fd:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif; --fb:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1322; --surface:#111D31; --surface-2:#182740; --ink:#EAF0FA; --muted:#98A8C0; --line:#233450;
+    --primary:#F2A413; --on-primary:#2B1D00; --accent:#F2A413; --on-accent:#2B1D00; --accent-bg:#3A2C0C;
+    --side:#0C1729; --side-ink:#D5E0F0; --side-muted:#8397B5; --side-line:#1D3250;
+    --good:#4CC38A; --good-bg:#12301F; --bad:#F07A7A; --bad-bg:#3A1A1A;
+    --sea:#12263F; --land:#17233A; --road:#22344F; --pin:#F2A413; --pin-ink:#2B1D00;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.28);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1322; --surface:#111D31; --surface-2:#182740; --ink:#EAF0FA; --muted:#98A8C0; --line:#233450;
+  --primary:#F2A413; --on-primary:#2B1D00; --accent:#F2A413; --on-accent:#2B1D00; --accent-bg:#3A2C0C;
+  --side:#0C1729; --side-ink:#D5E0F0; --side-muted:#8397B5; --side-line:#1D3250;
+  --good:#4CC38A; --good-bg:#12301F; --bad:#F07A7A; --bad-bg:#3A1A1A;
+  --sea:#12263F; --land:#17233A; --road:#22344F; --pin:#F2A413; --pin-ink:#2B1D00;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.28);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:15px;line-height:1.5}
+@media (min-width:1500px){body{font-size:16px}}
+h1,h2,h3,h4{font-family:var(--fd);margin:0;line-height:1.2;text-wrap:balance;font-weight:600}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.muted{color:var(--muted)} .small{font-size:.86rem}
+.ic{flex:none;vertical-align:-3px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* shell */
+.shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--side);color:var(--side-ink);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-family:var(--fd);font-weight:700;font-size:1.15rem}
+.bname{font-family:var(--fd);font-weight:700;font-size:1.05rem;display:flex;flex-direction:column;line-height:1.1}
+.bname small{font-family:var(--fb);font-weight:600;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-top:3px}
+.side .brand{padding:4px 10px 22px}
+.navitem{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border:0;border-radius:10px;background:transparent;color:var(--side-ink);text-align:left;font-weight:600}
+.navitem:hover{background:var(--side-line)}
+.navitem[aria-current="page"]{background:var(--accent);color:var(--on-accent)}
+.navitem .count{margin-left:auto;font-size:.78rem;background:var(--side-line);color:var(--side-ink);padding:1px 8px;border-radius:99px}
+.navitem[aria-current="page"] .count{background:rgba(43,29,0,.15);color:var(--on-accent)}
+.side-foot{margin-top:auto;padding:14px 10px 0;border-top:1px solid var(--side-line);font-size:.84rem;color:var(--side-muted)}
+.side-foot strong{display:block;color:var(--side-ink);font-size:.92rem}
+
+.content{min-width:0;padding:0 clamp(16px,3vw,44px) 56px}
+.demo-strip{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:9px 12px;margin:0 calc(-1*clamp(16px,3vw,44px));background:var(--accent-bg);color:var(--ink);font-size:.84rem;text-align:center}
+.demo-strip b{background:var(--accent);color:var(--on-accent);padding:1px 8px;border-radius:99px;font-size:.72rem;letter-spacing:.08em}
+.mbrand{display:none;padding:14px 0 0}
+.mbrand .brand{color:var(--ink)}
+.main{max-width:1560px;margin:0 auto;padding-top:26px}
+.page-head{margin-bottom:18px;display:flex;flex-direction:column;gap:6px}
+.page-head h1{font-size:clamp(1.5rem,2.2vw,2.1rem)}
+
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;border-radius:10px;font-weight:600;line-height:1.2}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn-primary:hover{filter:brightness(1.12);border-color:var(--primary)}
+.btn-accent{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn-danger{color:var(--bad);border-color:var(--bad)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn-lg{padding:14px 20px;font-size:1.02rem;width:100%}
+.input,.select,textarea.input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea.input{min-height:96px;resize:vertical}
+.input:focus,.select:focus{border-color:var(--accent)}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.label{font-weight:600;font-size:.86rem}
+.hint{font-size:.82rem;color:var(--muted)}
+.err{color:var(--bad);font-size:.86rem}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:11px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:8px 14px;border-radius:9px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);padding:7px 13px;border-radius:99px;font-weight:600;font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.pad{padding:20px}
+
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:12px}
+.search{flex:1 1 280px;display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:10px;padding:0 12px;min-height:44px}
+.search input{flex:1;border:0;background:transparent;min-width:0;outline:none;min-height:42px}
+.toolbar .select{width:auto;min-width:170px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 18px}
+.filters .select{width:auto;min-width:150px;padding:7px 12px;min-height:38px;border-radius:99px}
+.divider{width:1px;height:24px;background:var(--line)}
+
+/* explore */
+.explore{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+.mapcol{display:none}
+.explore.show-map .mapcol{display:block}
+.explore.show-map #results{display:none}
+@media (min-width:1100px){
+  .explore{grid-template-columns:minmax(0,1fr) minmax(360px,40%)}
+  .mapcol{display:block;position:sticky;top:16px}
+  .explore.show-map #results{display:block}
+  .maptoggle{display:none}
+}
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.res-head .select{width:auto;min-width:170px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.lcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
+.lcard:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.lart{position:relative;aspect-ratio:16/10;background:var(--surface-2)}
+.lart svg{display:block;width:100%;height:100%}
+.favbtn{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#0E1B2E;display:grid;place-items:center}
+.favbtn.on{color:#C0392B}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--ink)}
+.lart .tag{position:absolute;left:10px;bottom:10px;background:rgba(15,39,68,.88);color:#fff}
+.lbody{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.lbody h3{font-size:1.02rem}
+.rate{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:.88rem}
+.rate .ic{color:var(--accent)}
+.lprice{margin-top:auto;padding-top:8px;display:flex;align-items:baseline;gap:6px}
+.lprice strong{font-family:var(--fd);font-size:1.15rem}
+.empty{padding:44px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty h3{font-size:1.15rem}
+
+/* map */
+.mapbox{overflow:hidden;padding:0}
+.mapbox svg{display:block;width:100%;height:auto}
+.mapnote{padding:10px 14px;font-size:.82rem;color:var(--muted);border-top:1px solid var(--line)}
+.pin{cursor:pointer}
+.pin rect{fill:var(--pin)}
+.pin text{fill:var(--pin-ink);font-family:var(--fb);font-weight:700}
+.pin:hover rect{fill:var(--accent)} .pin:hover text{fill:var(--on-accent)}
+.alabel{fill:var(--muted);font-family:var(--fb);font-weight:600;letter-spacing:.04em}
+
+/* detail */
+.back{margin-bottom:14px}
+.detail{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+@media (min-width:1000px){.detail{grid-template-columns:minmax(0,1fr) 400px}}
+.hero-art{border-radius:18px;overflow:hidden;aspect-ratio:16/8;background:var(--surface-2)}
+.hero-art svg{display:block;width:100%;height:100%}
+.dhead{display:flex;flex-direction:column;gap:8px;margin:18px 0}
+.dhead h1{font-size:clamp(1.4rem,2.2vw,2rem)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.feat{display:flex;gap:8px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-weight:600;font-size:.9rem;background:var(--surface)}
+.section{margin-top:26px;display:flex;flex-direction:column;gap:12px}
+.section h2{font-size:1.15rem}
+.host{display:flex;gap:14px;align-items:center;padding:14px}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:700;font-family:var(--fd)}
+.review{padding:14px;display:flex;flex-direction:column;gap:6px}
+.book{position:sticky;top:16px;padding:20px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 32px);overflow:auto}
+@media (max-width:999px){.book{position:static;max-height:none}}
+.book .price-big{font-family:var(--fd);font-size:1.6rem;font-weight:700}
+.stepper{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:4px}
+.stepper button{width:38px;height:38px;border:0;border-radius:8px;background:var(--surface-2);font-size:1.2rem;font-weight:700}
+.stepper span{font-weight:700}
+.quote{display:flex;flex-direction:column;gap:6px;border-top:1px dashed var(--line);padding-top:12px;font-size:.92rem}
+.quote div{display:flex;justify-content:space-between;gap:10px}
+.quote .total{font-weight:800;font-size:1.05rem;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.cal{display:flex;flex-direction:column;gap:8px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.cal-head button{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:34px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.cal-grid .dow{font-size:.72rem;color:var(--muted);font-weight:700;padding:2px 0}
+.cal-grid button{border:0;background:var(--surface-2);border-radius:8px;min-height:36px;font-weight:600}
+.cal-grid button.in{background:var(--accent-bg);box-shadow:inset 0 0 0 1px var(--accent)}
+.cal-grid button.start{background:var(--accent);color:var(--on-accent)}
+.cal-grid button[disabled]{background:transparent;color:var(--muted);opacity:.45;text-decoration:line-through;cursor:not-allowed}
+.cal-grid .pad-cell{min-height:36px}
+.legend{display:flex;gap:14px;font-size:.78rem;color:var(--muted);flex-wrap:wrap}
+.notice{padding:10px 12px;border-radius:10px;background:var(--accent-bg);font-size:.86rem}
+.notice.bad{background:var(--bad-bg);color:var(--bad)}
+.notice.good{background:var(--good-bg);color:var(--good)}
+
+/* lists */
+.stack{display:flex;flex-direction:column;gap:14px}
+.bk{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:16px;padding:14px;align-items:center}
+.bk .thumb{width:96px;aspect-ratio:4/3;border-radius:10px;overflow:hidden}
+.bk .thumb svg{width:100%;height:100%;display:block}
+.status{font-size:.76rem;font-weight:800;padding:3px 10px;border-radius:99px;background:var(--good-bg);color:var(--good)}
+.status.off{background:var(--bad-bg);color:var(--bad)}
+@media (max-width:640px){.bk{grid-template-columns:72px minmax(0,1fr)}.bk .thumb{width:72px}.bk .acts{grid-column:1/-1}}
+.msgs{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:18px;min-height:520px}
+@media (max-width:760px){.msgs{grid-template-columns:minmax(0,1fr)}}
+.tlist button{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px}
+.tlist button[aria-current="true"]{background:var(--accent-bg)}
+.thread{display:flex;flex-direction:column;min-height:520px}
+.thread-head{padding:14px 16px;border-bottom:1px solid var(--line)}
+.bubbles{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.bubble{max-width:78%;padding:10px 14px;border-radius:14px;background:var(--surface-2)}
+.bubble.me{align-self:flex-end;background:var(--primary);color:var(--on-primary)}
+.composer{display:flex;gap:10px;padding:12px;border-top:1px solid var(--line)}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.formgrid .wide{grid-column:1/-1}
+.checks{display:flex;gap:10px;flex-wrap:wrap}
+.checks label{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--surface);font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+@media (min-width:1100px){.two{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}}
+.kv{display:grid;grid-template-columns:140px minmax(0,1fr);gap:8px 14px;font-size:.94rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600}
+.rating{display:flex;gap:8px}
+.rating button{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:800}
+.rating button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+
+/* tabbar */
+.tabbar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around}
+.tabbar button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;font-weight:700;color:var(--muted);padding:6px 2px;position:relative}
+.tabbar button[aria-current="page"]{color:var(--ink)}
+.tabbar button[aria-current="page"]::before{content:"";position:absolute;top:-7px;width:28px;height:3px;border-radius:3px;background:var(--accent)}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side{display:none}
+  .tabbar{display:flex}
+  .mbrand{display:block}
+  .content{padding-bottom:96px}
+  .main{padding-top:18px}
+}
+
+/* auth */
+.auth{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+.auth-hero{background:var(--side);color:var(--side-ink);padding:clamp(24px,5vw,72px);display:flex;flex-direction:column;gap:22px;justify-content:center}
+.auth-hero h1{font-size:clamp(1.8rem,3.4vw,3rem);color:#fff;max-width:18ch}
+.auth-hero p{max-width:52ch;color:var(--side-ink)}
+.auth-points{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.auth-points li{display:flex;gap:10px;align-items:flex-start}
+.auth-points .ic{color:var(--accent);margin-top:2px}
+.auth-wrap{display:grid;place-items:center;padding:clamp(16px,4vw,48px)}
+.auth-card{width:100%;max-width:440px;padding:26px;display:flex;flex-direction:column;gap:16px}
+.auth-card h2{font-size:1.35rem}
+@media (max-width:860px){.auth{grid-template-columns:minmax(0,1fr)}.auth-hero{padding:28px 16px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- helpers ---------- */
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const a=s.split('-').map(Number);return new Date(a[0],a[1]-1,a[2])};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const dayIdx=d=>Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);
+const fmtDate=s=>parse(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const money=n=>'AED '+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const aed=n=>'AED '+Number(n).toLocaleString('en-US');
+const hash=s=>{let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h};
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const initials=n=>String(n).split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'U';
+
+const IC={
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+  pin:'<path d="M12 21s-6-5.5-6-11a6 6 0 1 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+  bolt:'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+  shield:'<path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  chat:'<path d="M4 5h16v11H9l-5 4z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  calendar:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  map:'<path d="M9 4l6 2 5-2v14l-5 2-6-2-5 2V6z"/>',
+  list:'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+  lock:'<rect x="6" y="11" width="12" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  left:'<path d="M15 5l-7 7 7 7"/>',
+  right:'<path d="M9 5l7 7-7 7"/>',
+  out:'<path d="M14 4h6v16h-6M10 8l-4 4 4 4M6 12h10"/>'
+};
+const ic=(n,fill)=>'<svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="'+(fill?'currentColor':'none')+'" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
+const FEAT_IC={'CCTV':'shield','24/7 access':'clock','EV charging':'bolt','Gated':'lock','Car wash':'drop','Valet':'user'};
+
+/* ---------- sample data (all fictional) ---------- */
+const AREAS={
+  'Dubai Marina':{x:14,y:44},'JLT':{x:25,y:47},'Palm Jumeirah':{x:8,y:35},'Al Barsha':{x:37,y:52},
+  'JVC':{x:44,y:61},'Business Bay':{x:51,y:37},'Downtown Dubai':{x:64,y:31},'DIFC':{x:74,y:26},
+  'Bur Dubai':{x:84,y:20},'Deira':{x:93,y:14}
+};
+const AREA_NAMES=Object.keys(AREAS);
+const TYPES=['Underground','Covered','Open-air','Garage'];
+const SIZES=['Compact','Sedan','SUV'];
+const SIZE_RANK={Compact:1,Sedan:2,SUV:3};
+const FEATS=['CCTV','24/7 access','EV charging','Gated','Car wash','Valet'];
+const PERIODS={
+  hour:{unit:'hour',label:'Hourly',max:12,def:2},
+  day:{unit:'day',label:'Daily',max:30,def:1},
+  month:{unit:'month',label:'Monthly',max:12,def:1}
+};
+const CAPS={hour:[6,8,10,12],day:[30,40,50,60],month:[600,800,1000,1200]};
+const LISTINGS=[
+ {id:'p1',title:'Underground bay by the Marina Walk',area:'Dubai Marina',type:'Underground',size:'SUV',hour:10,day:55,month:1100,rating:4.8,reviews:42,features:['CCTV','24/7 access','EV charging','Gated'],owner:'Layla A.',verified:true,since:2022,bay:'B2-114',desc:'Wide bay on the second basement level, two minutes from the promenade and the tram stop. Lift access straight to the lobby. Bay is numbered and reserved for you for the whole booking.'},
+ {id:'p2',title:'Covered space in a JLT cluster tower',area:'JLT',type:'Covered',size:'Sedan',hour:7,day:40,month:780,rating:4.6,reviews:27,features:['CCTV','Gated'],owner:'Rashid M.',verified:true,since:2023,bay:'P1-072',desc:'Podium-level covered bay. Easy ramp, no height limit issues for standard cars. Close to the metro bridge and the lake-side cafes.'},
+ {id:'p3',title:'Garage box on the Palm, private entry',area:'Palm Jumeirah',type:'Garage',size:'SUV',hour:14,day:80,month:1500,rating:4.9,reviews:18,features:['CCTV','24/7 access','Gated','Car wash'],owner:'Sofia K.',verified:true,since:2021,bay:'G-07',desc:'Your own lockable garage box with a remote. Fits a large SUV with room to open the doors fully. Quiet street, ten minutes from the beach clubs.'},
+ {id:'p4',title:'Open bay near Al Barsha mall',area:'Al Barsha',type:'Open-air',size:'Sedan',hour:4,day:25,month:450,rating:4.3,reviews:35,features:['24/7 access'],owner:'Imran S.',verified:false,since:2024,bay:'A-31',desc:'Simple outdoor bay with shade netting, steps from the mall entrance and the metro. Good for daily commuters who want the lowest price.'},
+ {id:'p5',title:'Shaded bay in a JVC residence',area:'JVC',type:'Covered',size:'Compact',hour:5,day:30,month:520,rating:4.4,reviews:21,features:['CCTV','Gated'],owner:'Hana L.',verified:true,since:2023,bay:'C-19',desc:'Compact car only. Covered bay in a resident-only car park with a barrier gate. Quiet area with grocery and a park close by.'},
+ {id:'p6',title:'Business Bay basement, canal side',area:'Business Bay',type:'Underground',size:'Sedan',hour:11,day:60,month:1200,rating:4.7,reviews:56,features:['CCTV','24/7 access','EV charging'],owner:'Tariq H.',verified:true,since:2022,bay:'B1-208',desc:'Basement bay with a fast EV charger on the pillar next to it. Walk to the canal promenade and the office towers in under five minutes.'},
+ {id:'p7',title:'Downtown bay for event nights',area:'Downtown Dubai',type:'Underground',size:'SUV',hour:15,day:75,month:1600,rating:4.8,reviews:63,features:['CCTV','24/7 access','Valet','EV charging'],owner:'Nadia P.',verified:true,since:2021,bay:'B3-009',desc:'Close to the fountain, the opera and the big mall. Best for evenings and weekends when public lots fill up. Valet drop is available on request.'},
+ {id:'p8',title:'DIFC executive bay with attendant',area:'DIFC',type:'Covered',size:'Sedan',hour:13,day:70,month:1450,rating:4.7,reviews:30,features:['CCTV','Valet','Gated','24/7 access'],owner:'Karim D.',verified:true,since:2022,bay:'L2-044',desc:'Attended car park used by nearby offices. Choose it for client meetings and long lunches. Receipt provided on exit.'},
+ {id:'p9',title:'Bur Dubai heritage quarter bay',area:'Bur Dubai',type:'Open-air',size:'Compact',hour:5,day:28,month:480,rating:4.2,reviews:19,features:['24/7 access'],owner:'Yusuf B.',verified:false,since:2024,bay:'H-12',desc:'Small bay on a private plot, a short walk from the creek abra station and the souks. Narrow lane, so compact cars only.'},
+ {id:'p10',title:'Deira creek-view covered bay',area:'Deira',type:'Covered',size:'Sedan',hour:6,day:35,month:620,rating:4.5,reviews:24,features:['CCTV','Gated'],owner:'Mona G.',verified:true,since:2023,bay:'C2-030',desc:'Covered bay in a residential block near the creek. Good for monthly plans if you work in the old city or at the port side.'},
+ {id:'p11',title:'Marina Gate-style tower, EV bay',area:'Dubai Marina',type:'Underground',size:'Sedan',hour:12,day:62,month:1250,rating:4.7,reviews:38,features:['EV charging','CCTV','Gated'],owner:'Aarav N.',verified:true,since:2023,bay:'B1-301',desc:'Dedicated EV bay with a wall charger included in the price. Bring your own cable. Lift to the podium and the yacht club side.'},
+ {id:'p12',title:'JLT open lot behind the metro',area:'JLT',type:'Open-air',size:'SUV',hour:4,day:26,month:460,rating:4.1,reviews:44,features:['24/7 access','CCTV'],owner:'Peter W.',verified:false,since:2024,bay:'L-88',desc:'Large open lot with marked bays, a short walk from the metro exit. Fills up on weekday mornings, so booking ahead helps.'},
+ {id:'p13',title:'Downtown garage box with lift',area:'Downtown Dubai',type:'Garage',size:'SUV',hour:16,day:90,month:1750,rating:4.9,reviews:12,features:['CCTV','24/7 access','Gated','Car wash'],owner:'Elena V.',verified:true,since:2022,bay:'G-02',desc:'Private garage with a small storage shelf and a hose point for washing. Suits collectors and anyone who wants the car out of the dust.'},
+ {id:'p14',title:'Al Barsha villa driveway slot',area:'Al Barsha',type:'Open-air',size:'SUV',hour:3,day:20,month:380,rating:4.4,reviews:15,features:['Gated'],owner:'Ahmed R.',verified:true,since:2024,bay:'D-1',desc:'Gated villa driveway with space for one large car. Quiet street, ideal for long stays while you travel.'}
+];
+const REVIEW_POOL=[
+ {n:'Omar K.',t:'Easy to find, the ramp is wide and the gate worked first time.'},
+ {n:'Priya S.',t:'Exactly as described. The host replied within minutes.'},
+ {n:'Daniel M.',t:'Good spot for a monthly plan, felt safe at night.'},
+ {n:'Fatima R.',t:'A little tight for my SUV but manageable.'},
+ {n:'Jon T.',t:'Clean, well lit and close to the metro.'},
+ {n:'Mariam H.',t:'Great value compared with the mall parking.'}
+];
+
+/* ---------- state ---------- */
+const KEY='pnp-survey-demo-v1';
+const S={
+  user:null, view:'explore', selected:null, prev:'explore', showMap:false,
+  authTab:'in', authErr:'',
+  filters:{q:'',area:'All areas',types:[],size:'Any',maxPrice:0,ev:false,period:'day',sort:'rec'},
+  fav:[], bookings:[], mine:[], threads:{}, surveys:[],
+  draft:null, cal:{y:0,m:0}, cancelAsk:null, lastBooking:null, rated:0, ratedSent:false,
+  thread:null, flash:'', formErr:'', profileMsg:''
+};
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw) return;
+    const d=JSON.parse(raw);
+    if(d.user) S.user=d.user;
+    ['fav','bookings','mine','surveys'].forEach(k=>{if(Array.isArray(d[k])) S[k]=d[k]});
+    if(d.threads&&typeof d.threads==='object') S.threads=d.threads;
+  }catch(e){}
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify({user:S.user,fav:S.fav,bookings:S.bookings,mine:S.mine,threads:S.threads,surveys:S.surveys}))}catch(e){}
+}
+const allListings=()=>LISTINGS.concat(S.mine);
+const byId=id=>allListings().find(l=>l.id===id);
+
+/* ---------- illustration ---------- */
+let artN=0;
+function art(l){
+  const pal={Underground:['#16253D','#2B4366'],Covered:['#343A4F','#586080'],'Open-air':['#6F9BC4','#C4DCF0'],Garage:['#33322E','#67635A']}[l.type]||['#2a3a55','#4a5f85'];
+  const h=hash(l.id), id='g'+(++artN), carX=[52,132,212][h%3], carCol=['#E4572E','#F2A413','#DDE3EC','#2E86AB'][h%4];
+  let top='';
+  if(l.type==='Open-air'){
+    top='<circle cx="262" cy="46" r="20" fill="#FBD36B"/><rect x="0" y="92" width="320" height="30" fill="#8FB4D6"/>';
+  }else{
+    top='<rect x="0" y="0" width="320" height="26" fill="rgba(0,0,0,.28)"/>'+
+        [50,130,210,290].map(x=>'<rect x="'+(x-18)+'" y="22" width="36" height="5" rx="2.5" fill="#FFF3C4" opacity=".85"/>').join('')+
+        [24,164,300].map(x=>'<rect x="'+(x-9)+'" y="26" width="18" height="96" fill="rgba(255,255,255,.10)"/>').join('');
+  }
+  const bays=[20,100,180,260,340].map(x=>'<path d="M'+x+' 128 L'+(x-8)+' 196" stroke="#F4F6FA" stroke-width="3" opacity=".8"/>').join('');
+  return '<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Illustration of bay '+esc(l.bay)+'">'+
+    '<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+pal[0]+'"/><stop offset="1" stop-color="'+pal[1]+'"/></linearGradient></defs>'+
+    '<rect width="320" height="200" fill="url(#'+id+')"/>'+top+
+    '<rect x="0" y="120" width="320" height="80" fill="rgba(0,0,0,.30)"/>'+bays+
+    '<g><rect x="'+carX+'" y="140" width="64" height="26" rx="9" fill="'+carCol+'"/><rect x="'+(carX+12)+'" y="128" width="40" height="18" rx="7" fill="'+carCol+'"/><rect x="'+(carX+17)+'" y="132" width="30" height="11" rx="4" fill="rgba(255,255,255,.55)"/><circle cx="'+(carX+14)+'" cy="168" r="7" fill="#0b0f16"/><circle cx="'+(carX+50)+'" cy="168" r="7" fill="#0b0f16"/></g>'+
+    '<text x="16" y="186" fill="#fff" font-family="Manrope,system-ui,sans-serif" font-weight="800" font-size="15" letter-spacing="1">'+esc(l.bay)+'</text>'+
+    '</svg>';
+}
+
+/* ---------- pricing & availability ---------- */
+function booked(l,d){return (dayIdx(d)+hash(l.id))%17<2}
+function rangeDates(l,b){
+  const s=parse(b.start);
+  if(b.period==='day'){const r=[];for(let i=0;i<b.qty;i++)r.push(addDays(s,i));return r}
+  return [s];
+}
+function availability(l,b){
+  const t=today();
+  const bad=rangeDates(l,b).filter(d=>d<t||booked(l,d));
+  return {ok:bad.length===0,bad};
+}
+function quote(l,b){
+  const unit=l[b.period], sub=unit*b.qty;
+  const fee=Math.round(sub*0.05*100)/100;
+  const vat=Math.round((sub+fee)*0.05*100)/100;
+  return {unit,sub,fee,vat,total:Math.round((sub+fee+vat)*100)/100};
+}
+function newDraft(l){
+  const p=S.filters.period;
+  let start=addDays(today(),1);
+  for(let i=0;i<40&&booked(l,start);i++) start=addDays(start,1);
+  S.draft={period:p,qty:PERIODS[p].def,start:iso(start),time:'09:00',plate:'',err:''};
+  S.cal={y:start.getFullYear(),m:start.getMonth()};
+}
+function endTime(time,qty){
+  const h=parseInt(time.slice(0,2),10)+qty;
+  return h>=24?'24:00':pad(h)+':'+time.slice(3);
+}
+
+/* ---------- filtering ---------- */
+function filtered(){
+  const f=S.filters, q=f.q.trim().toLowerCase();
+  let r=allListings().filter(l=>{
+    if(f.area!=='All areas'&&l.area!==f.area) return false;
+    if(f.types.length&&f.types.indexOf(l.type)<0) return false;
+    if(f.size!=='Any'&&SIZE_RANK[l.size]<SIZE_RANK[f.size]) return false;
+    if(f.ev&&l.features.indexOf('EV charging')<0) return false;
+    if(f.maxPrice&&l[f.period]>f.maxPrice) return false;
+    if(q&&(l.title+' '+l.area+' '+l.type+' '+l.features.join(' ')+' '+l.desc).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  if(f.sort==='price') r.sort((a,b)=>a[f.period]-b[f.period]);
+  else if(f.sort==='rating') r.sort((a,b)=>(+b.rating||0)-(+a.rating||0));
+  return r;
+}
+
+/* ---------- views ---------- */
+const brand=()=>'<div class="brand"><span class="logo" aria-hidden="true">P</span><span class="bname">Park’N’Pay<small>Survey</small></span></div>';
+const rateHtml=l=>'<span class="rate">'+ic('star',true)+(l.rating||'New')+(l.reviews?' <span class="muted" style="font-weight:500">('+l.reviews+')</span>':'')+'</span>';
+const NAV=[
+  ['explore','Explore','compass'],['favorites','Favorites','heart'],['bookings','My bookings','calendar'],
+  ['messages','Messages','chat'],['list','List a spot','plus'],['profile','Profile','user']
+];
+function navCount(v){
+  if(v==='favorites') return S.fav.length;
+  if(v==='bookings') return S.bookings.filter(b=>b.status==='Upcoming').length;
+  if(v==='messages') return Object.keys(S.threads).length;
+  return 0;
+}
+const curNav=()=>S.view==='detail'||S.view==='confirm'?(S.view==='confirm'?'bookings':S.prev):S.view;
+
+function renderSide(){
+  const cur=curNav();
+  return '<aside class="side">'+brand()+'<nav aria-label="Main">'+NAV.map(n=>{
+    const c=navCount(n[0]);
+    return '<button class="navitem" data-a="nav:'+n[0]+'"'+(cur===n[0]?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+(c?'<span class="count">'+c+'</span>':'')+'</button>';
+  }).join('')+'</nav><div class="side-foot"><strong>'+esc(S.user.name)+'</strong>'+esc(S.user.email||'Guest session')+'</div></aside>';
+}
+function renderTabbar(){
+  const cur=curNav();
+  const items=[['explore','Explore','compass'],['favorites','Saved','heart'],['bookings','Bookings','calendar'],['messages','Chat','chat'],['profile','Profile','user']];
+  return '<nav class="tabbar" aria-label="Main">'+items.map(n=>'<button data-a="nav:'+n[0]+'"'+(cur===n[0]?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+'</button>').join('')+'</nav>';
+}
+
+function renderExplore(){
+  const f=S.filters;
+  return '<div class="page-head"><h1>Find a parking spot in Dubai</h1><p class="muted">Browse sample bays across the city. Pick hourly, daily or monthly rates, then reserve in a few taps.</p></div>'+
+  '<div class="toolbar card">'+
+    '<label class="search">'+ic('search')+'<span class="sr">Search</span><input id="q" type="search" placeholder="Search by area, building or keyword" value="'+esc(f.q)+'" autocomplete="off"></label>'+
+    '<select class="select" data-f="area" aria-label="Area"><option>All areas</option>'+AREA_NAMES.map(a=>'<option'+(f.area===a?' selected':'')+'>'+a+'</option>').join('')+'</select>'+
+    '<div class="seg" role="group" aria-label="Rate period" id="periodseg">'+periodSeg()+'</div>'+
+  '</div>'+
+  '<div class="filters" id="filters">'+filtersInner()+'</div>'+
+  '<div class="explore'+(S.showMap?' show-map':'')+'"><section id="results" aria-live="polite">'+renderResults()+'</section><aside class="mapcol" id="mapcol">'+renderMap()+'</aside></div>';
+}
+function periodSeg(){
+  return Object.keys(PERIODS).map(p=>'<button data-a="period:'+p+'" aria-pressed="'+(S.filters.period===p)+'">'+PERIODS[p].label+'</button>').join('');
+}
+function filtersInner(){
+  const f=S.filters;
+  return TYPES.map(t=>'<button class="chip" data-a="type:'+t+'" aria-pressed="'+(f.types.indexOf(t)>=0)+'">'+t+'</button>').join('')+
+    '<button class="chip" data-a="ev" aria-pressed="'+f.ev+'">'+ic('bolt')+' EV charging</button>'+
+    '<span class="divider" aria-hidden="true"></span>'+
+    '<select class="select" data-f="size" aria-label="My vehicle"><option value="Any">Any vehicle</option>'+SIZES.map(s=>'<option value="'+s+'"'+(f.size===s?' selected':'')+'>'+s+' car</option>').join('')+'</select>'+
+    '<select class="select" data-f="maxPrice" aria-label="Maximum price"><option value="0">Any price</option>'+CAPS[f.period].map(c=>'<option value="'+c+'"'+(f.maxPrice===c?' selected':'')+'>Up to AED '+c+' / '+PERIODS[f.period].unit+'</option>').join('')+'</select>'+
+    '<button class="chip" data-a="clear">Reset</button>'+
+    '<button class="chip maptoggle" data-a="map">'+(S.showMap?ic('list')+' Show list':ic('map')+' Show map')+'</button>';
+}
+function card(l){
+  const p=S.filters.period, fav=S.fav.indexOf(l.id)>=0;
+  return '<article class="lcard" data-a="open:'+l.id+'" tabindex="0" role="button" aria-label="Open '+esc(l.title)+'">'+
+    '<div class="lart">'+art(l)+'<button class="favbtn'+(fav?' on':'')+'" data-a="fav:'+l.id+'" aria-pressed="'+fav+'" aria-label="'+(fav?'Remove from favorites':'Save to favorites')+'">'+ic('heart',fav)+'</button><span class="tag">'+l.type+'</span></div>'+
+    '<div class="lbody"><h3>'+esc(l.title)+'</h3>'+
+    '<p class="muted small">'+ic('pin')+' '+esc(l.area)+' · fits '+l.size.toLowerCase()+' car</p>'+
+    '<div class="row" style="gap:8px">'+rateHtml(l)+(l.features.indexOf('EV charging')>=0?'<span class="tag">'+ic('bolt')+' EV</span>':'')+'</div>'+
+    '<div class="lprice"><strong>'+aed(l[p])+'</strong><span class="muted">/ '+PERIODS[p].unit+'</span></div></div></article>';
+}
+function renderResults(){
+  const r=filtered(), f=S.filters;
+  const head='<div class="res-head"><div><strong>'+r.length+' '+(r.length===1?'spot':'spots')+'</strong> <span class="muted">'+(f.area==='All areas'?'across Dubai':'in '+esc(f.area))+'</span></div>'+
+    '<select class="select" data-f="sort" aria-label="Sort"><option value="rec"'+(f.sort==='rec'?' selected':'')+'>Recommended</option><option value="price"'+(f.sort==='price'?' selected':'')+'>Price, low to high</option><option value="rating"'+(f.sort==='rating'?' selected':'')+'>Top rated</option></select></div>';
+  if(!r.length) return head+'<div class="card empty"><h3>No spots match these filters</h3><p class="muted">Try another area, remove a filter or raise the price limit.</p><button class="btn btn-primary" data-a="clear">Reset filters</button></div>';
+  return head+'<div class="lgrid">'+r.map(card).join('')+'</div>';
+}
+function renderMap(){
+  const r=filtered(), p=S.filters.period, seen={};
+  const pins=r.map(l=>{
+    const a=AREAS[l.area]||{x:50,y:40}, n=seen[l.area]=(seen[l.area]||0)+1;
+    const x=a.x, y=a.y-(n-1)*5.2, label=String(l[p]);
+    const w=label.length*1.5+4.6;
+    return '<g class="pin" data-a="open:'+l.id+'" tabindex="0" role="button" aria-label="'+esc(l.title)+', AED '+label+'"><rect x="'+(x-w/2)+'" y="'+(y-2.3)+'" width="'+w+'" height="4.6" rx="2.3"/><text x="'+x+'" y="'+(y+1.05)+'" font-size="2.7" text-anchor="middle">'+label+'</text></g>';
+  }).join('');
+  const labels=AREA_NAMES.map(n=>'<text class="alabel" x="'+AREAS[n].x+'" y="'+(AREAS[n].y+5.4)+'" font-size="2.1" text-anchor="middle">'+n.toUpperCase()+'</text>').join('');
+  return '<div class="card mapbox"><svg viewBox="0 0 100 70" role="img" aria-label="Schematic map of Dubai with parking prices">'+
+    '<rect width="100" height="70" fill="var(--sea)"/>'+
+    '<path d="M0 46 L100 6 L100 70 L0 70 Z" fill="var(--land)"/>'+
+    '<path d="M0 53 L100 13" stroke="var(--road)" stroke-width="1.6" fill="none"/>'+
+    '<path d="M0 60 L100 20" stroke="var(--road)" stroke-width=".7" fill="none" opacity=".8"/>'+
+    '<path d="M30 70 L70 18" stroke="var(--road)" stroke-width=".9" fill="none" opacity=".9"/>'+
+    '<path d="M62 70 L96 22" stroke="var(--road)" stroke-width=".7" fill="none" opacity=".8"/>'+
+    '<path d="M4 33 q4 -4 8 -1 q-1 5 -6 6 z" fill="var(--land)"/>'+
+    labels+pins+'</svg><div class="mapnote">Schematic map. Prices shown per '+PERIODS[p].unit+', in AED. Tap a price to open the spot.</div></div>';
+}
+
+function calendarHtml(l){
+  const b=S.draft, y=S.cal.y, m=S.cal.m;
+  const first=new Date(y,m,1), days=new Date(y,m+1,0).getDate(), lead=(first.getDay()+6)%7, t=today();
+  const set={}; rangeDates(l,b).forEach(d=>{set[iso(d)]=1});
+  const canPrev=(y>t.getFullYear())||(y===t.getFullYear()&&m>t.getMonth());
+  let cells='';
+  ['Mo','Tu','We','Th','Fr','Sa','Su'].forEach(d=>{cells+='<div class="dow">'+d+'</div>'});
+  for(let i=0;i<lead;i++) cells+='<div class="pad-cell"></div>';
+  for(let d=1;d<=days;d++){
+    const dt=new Date(y,m,d), k=iso(dt), off=dt<t||booked(l,dt);
+    const cls=(k===b.start?'start':(set[k]?'in':''));
+    cells+='<button type="button" class="'+cls+'" data-a="day:'+k+'"'+(off?' disabled':'')+' aria-label="'+fmtDate(k)+(off?', unavailable':'')+'">'+d+'</button>';
+  }
+  return '<div class="cal"><div class="cal-head"><button type="button" data-a="calprev" aria-label="Previous month"'+(canPrev?'':' disabled')+'>'+ic('left')+'</button><span>'+first.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</span><button type="button" data-a="calnext" aria-label="Next month">'+ic('right')+'</button></div>'+
+    '<div class="cal-grid">'+cells+'</div>'+
+    '<div class="legend"><span>Selected</span><span>Struck-through = taken</span></div></div>';
+}
+function bookInner(l){
+  const b=S.draft, P=PERIODS[b.period], q=quote(l,b), av=availability(l,b);
+  const hours=[];for(let h=6;h<=22;h++)hours.push(pad(h)+':00');
+  return '<div><div class="price-big">'+aed(l[b.period])+' <span class="muted small" style="font-family:var(--fb);font-weight:600">/ '+P.unit+'</span></div>'+
+    '<p class="muted small">Hourly '+aed(l.hour)+' · Daily '+aed(l.day)+' · Monthly '+aed(l.month)+'</p></div>'+
+    '<div class="seg" role="group" aria-label="Booking period" style="width:100%">'+Object.keys(PERIODS).map(p=>'<button style="flex:1" data-a="bperiod:'+p+'" aria-pressed="'+(b.period===p)+'">'+PERIODS[p].label+'</button>').join('')+'</div>'+
+    calendarHtml(l)+
+    '<div class="field"><span class="label">Start: '+fmtDate(b.start)+'</span>'+
+      (b.period==='hour'?'<select class="select" data-f="time" aria-label="Start time">'+hours.map(h=>'<option'+(b.time===h?' selected':'')+'>'+h+'</option>').join('')+'</select>':'')+
+    '</div>'+
+    '<div class="field"><span class="label">Duration</span><div class="stepper"><button type="button" data-a="qty:-1" aria-label="Decrease">−</button><span>'+b.qty+' '+P.unit+(b.qty>1?'s':'')+'</span><button type="button" data-a="qty:1" aria-label="Increase">+</button></div>'+
+      (b.period==='hour'?'<span class="hint">From '+b.time+' to '+endTime(b.time,b.qty)+'</span>':'')+
+      (b.period==='month'?'<span class="hint">Monthly plans start on the chosen day and renew by choice.</span>':'')+'</div>'+
+    '<div class="field"><label for="plate">Vehicle plate</label><input class="input" id="plate" placeholder="e.g. A 12345" maxlength="12" value="'+esc(b.plate)+'" autocomplete="off"><span class="hint">Used so the host can recognise your car. Sample field only.</span></div>'+
+    (av.ok?'':'<div class="notice bad">'+(b.period==='day'?'Some of the selected days are not available. Move the start day or shorten the stay.':'This day is not available. Pick another start day.')+'</div>')+
+    (b.err?'<div class="notice bad" role="alert">'+esc(b.err)+'</div>':'')+
+    '<div class="quote"><div><span>'+aed(q.unit)+' × '+b.qty+' '+P.unit+(b.qty>1?'s':'')+'</span><span>'+money(q.sub)+'</span></div><div><span>Service fee (5%)</span><span>'+money(q.fee)+'</span></div><div><span>VAT (5%)</span><span>'+money(q.vat)+'</span></div><div class="total"><span>Total</span><span>'+money(q.total)+'</span></div></div>'+
+    '<button class="btn btn-primary btn-lg" data-a="reserve"'+(av.ok?'':' disabled')+'>Reserve this spot</button>'+
+    '<p class="hint" style="text-align:center">Training build: nothing is charged and no real booking is made.</p>';
+}
+function renderDetail(){
+  const l=byId(S.selected); if(!l) return renderExplore();
+  const fav=S.fav.indexOf(l.id)>=0, h=hash(l.id);
+  const revs=[0,1,2].map(i=>REVIEW_POOL[(h+i)%REVIEW_POOL.length]);
+  return '<button class="btn back" data-a="back">'+ic('back')+' Back to results</button>'+
+  '<div class="detail"><div>'+
+    '<div class="hero-art">'+art(l)+'</div>'+
+    '<div class="dhead"><div class="row"><span class="tag">'+l.type+'</span><span class="tag">Fits '+l.size.toLowerCase()+' car</span><span class="tag">Bay '+esc(l.bay)+'</span></div>'+
+      '<h1>'+esc(l.title)+'</h1>'+
+      '<div class="row"><span class="muted">'+ic('pin')+' '+esc(l.area)+', Dubai</span>'+rateHtml(l)+
+      '<button class="btn" data-a="fav:'+l.id+'" aria-pressed="'+fav+'">'+ic('heart',fav)+' '+(fav?'Saved':'Save')+'</button></div></div>'+
+    '<p>'+esc(l.desc)+'</p>'+
+    '<div class="section"><h2>What is included</h2><div class="row">'+(l.features.length?l.features.map(f=>'<span class="feat">'+ic(FEAT_IC[f]||'check')+f+'</span>').join(''):'<span class="muted">Basic bay, no extras.</span>')+'</div></div>'+
+    '<div class="section"><h2>Your host</h2><div class="card host"><span class="avatar" aria-hidden="true">'+esc(initials(l.owner))+'</span><div style="flex:1;min-width:0"><strong>'+esc(l.owner)+'</strong><div class="muted small">'+(l.verified?'Verified host':'Not yet verified')+' · hosting since '+l.since+'</div></div><button class="btn" data-a="contact:'+l.id+'">'+ic('chat')+' Message</button></div></div>'+
+    '<div class="section"><h2>Reviews</h2>'+(l.reviews?revs.map(r=>'<div class="card review"><div class="row" style="justify-content:space-between"><strong>'+r.n+'</strong><span class="rate">'+ic('star',true)+'5.0</span></div><p>'+r.t+'</p></div>').join(''):'<p class="muted">No reviews yet. This is a new listing.</p>')+'<p class="hint">Sample reviews for the training build.</p></div>'+
+  '</div><aside class="card book" id="bookpanel" aria-label="Booking">'+bookInner(l)+'</aside></div>';
+}
+function renderConfirm(){
+  const b=S.bookings.find(x=>x.id===S.lastBooking); if(!b) return renderBookings();
+  const P=PERIODS[b.period];
+  const when=b.period==='hour'?fmtDate(b.start)+', '+b.time+' to '+endTime(b.time,b.qty):b.period==='day'?fmtDate(b.start)+' to '+fmtDate(iso(addDays(parse(b.start),b.qty-1))):'from '+fmtDate(b.start);
+  return '<div style="max-width:760px;margin:0 auto" class="stack">'+
+    '<div class="card pad stack"><div class="row"><span class="avatar" style="background:var(--good);color:#fff">'+ic('check')+'</span><div><h1 style="font-size:1.5rem">Spot reserved</h1><p class="muted">Reference <strong style="color:var(--ink)">'+esc(b.id)+'</strong></p></div></div>'+
+      '<div class="notice">This is a training build. Your reservation is saved only in this browser and no payment was taken.</div>'+
+      '<dl class="kv"><dt>Spot</dt><dd>'+esc(b.title)+'</dd><dt>Area</dt><dd>'+esc(b.area)+'</dd><dt>When</dt><dd>'+when+'</dd><dt>Duration</dt><dd>'+b.qty+' '+P.unit+(b.qty>1?'s':'')+'</dd><dt>Vehicle</dt><dd>'+esc(b.plate)+'</dd><dt>Total</dt><dd>'+money(b.total)+'</dd></dl>'+
+      '<div class="row"><button class="btn btn-primary" data-a="nav:bookings">View my bookings</button><button class="btn" data-a="nav:explore">Keep exploring</button></div></div>'+
+    '<div class="card pad stack"><h2 style="font-size:1.1rem">Quick survey</h2>'+
+      (S.ratedSent?'<div class="notice good">Thank you. Your answer is saved in this browser.</div>':
+      '<p>How easy was it to reserve this spot?</p><div class="rating" role="group" aria-label="Rating from 1 to 5">'+[1,2,3,4,5].map(n=>'<button data-a="rate:'+n+'" aria-pressed="'+(S.rated===n)+'">'+n+'</button>').join('')+'</div><div class="hint">1 = hard, 5 = very easy</div>'+
+      '<div class="field"><label for="srvnote">Anything we should change? (optional)</label><textarea class="input" id="srvnote" maxlength="400"></textarea></div>'+
+      '<div><button class="btn btn-accent" data-a="sendsurvey"'+(S.rated?'':' disabled')+'>Send answer</button></div>')+
+    '</div></div>';
+}
+function bookingRow(b){
+  const l=byId(b.listingId)||{type:'Covered',id:b.listingId,bay:'—'};
+  const P=PERIODS[b.period], up=b.status==='Upcoming';
+  const when=b.period==='hour'?fmtDate(b.start)+' · '+b.time+'–'+endTime(b.time,b.qty):fmtDate(b.start)+' · '+b.qty+' '+P.unit+(b.qty>1?'s':'');
+  return '<div class="card bk"><div class="thumb">'+art(l)+'</div><div style="min-width:0"><div class="row" style="gap:8px"><strong>'+esc(b.title)+'</strong><span class="status'+(up?'':' off')+'">'+b.status+'</span></div>'+
+    '<div class="muted small">'+esc(b.area)+' · '+when+' · '+esc(b.plate)+'</div><div class="small">'+money(b.total)+' · '+esc(b.id)+'</div></div>'+
+    '<div class="acts row">'+(up?(S.cancelAsk===b.id?'<span class="small">Cancel this booking?</span><button class="btn btn-danger" data-a="cancelyes:'+b.id+'">Yes, cancel</button><button class="btn" data-a="cancelno">Keep</button>':'<button class="btn" data-a="open:'+b.listingId+'">View spot</button><button class="btn btn-danger" data-a="cancel:'+b.id+'">Cancel</button>'):'<button class="btn" data-a="open:'+b.listingId+'">View spot</button>')+'</div></div>';
+}
+function renderBookings(){
+  const list=S.bookings.slice().reverse();
+  return '<div class="page-head"><h1>My bookings</h1><p class="muted">Reservations you made in this training build.</p></div>'+
+    (list.length?'<div class="stack">'+list.map(bookingRow).join('')+'</div>':'<div class="card empty"><h3>No bookings yet</h3><p class="muted">Find a spot and press Reserve. It will show up here.</p><button class="btn btn-primary" data-a="nav:explore">Find a spot</button></div>');
+}
+function renderFavorites(){
+  const list=S.fav.map(byId).filter(Boolean);
+  return '<div class="page-head"><h1>Favorites</h1><p class="muted">Spots you saved for later.</p></div>'+
+    (list.length?'<div class="lgrid">'+list.map(card).join('')+'</div>':'<div class="card empty"><h3>Nothing saved yet</h3><p class="muted">Tap the heart on any spot to keep it here.</p><button class="btn btn-primary" data-a="nav:explore">Browse spots</button></div>');
+}
+function renderMessages(){
+  const ids=Object.keys(S.threads);
+  const head='<div class="page-head"><h1>Messages</h1><p class="muted">Chat with hosts. Replies in this training build are automatic samples.</p></div>';
+  if(!ids.length) return head+'<div class="card empty"><h3>No conversations yet</h3><p class="muted">Open a spot and press Message to start one.</p><button class="btn btn-primary" data-a="nav:explore">Find a spot</button></div>';
+  if(!S.thread||!S.threads[S.thread]) S.thread=ids[0];
+  const t=S.threads[S.thread], l=byId(S.thread);
+  return head+'<div class="msgs"><div class="card tlist" style="overflow:hidden">'+ids.map(id=>{
+    const x=S.threads[id], last=x.msgs[x.msgs.length-1];
+    return '<button data-a="thread:'+id+'"'+(id===S.thread?' aria-current="true"':'')+'><strong>'+esc(x.owner)+'</strong><span class="small muted">'+esc(x.title)+'</span><span class="small">'+esc(last?last.text.slice(0,60):'')+'</span></button>';
+  }).join('')+'</div>'+
+  '<div class="card thread"><div class="thread-head"><strong>'+esc(t.owner)+'</strong><div class="muted small">'+esc(t.title)+(l?' · <button class="btn" style="padding:2px 10px" data-a="open:'+l.id+'">View spot</button>':'')+'</div></div>'+
+  '<div class="bubbles" id="bubbles">'+t.msgs.map(m=>'<div class="bubble'+(m.from==='me'?' me':'')+'">'+esc(m.text)+'</div>').join('')+'</div>'+
+  '<form class="composer" data-form="msg"><label class="sr" for="msgInput">Message</label><input class="input" id="msgInput" placeholder="Write a message" autocomplete="off" maxlength="500"><button class="btn btn-primary" type="submit">Send</button></form></div></div>';
+}
+function renderList(){
+  const mine=S.mine;
+  return '<div class="page-head"><h1>List your spot</h1><p class="muted">Fill in the details and publish. Your listing appears in Explore straight away (in this browser only).</p></div>'+
+  (S.flash?'<div class="notice good" role="status" style="margin-bottom:16px">'+esc(S.flash)+'</div>':'')+
+  '<div class="two"><form class="card pad stack" data-form="list" novalidate><div class="formgrid">'+
+    '<div class="field wide"><label for="l_title">Title</label><input class="input" id="l_title" name="title" maxlength="70" placeholder="e.g. Covered bay near the metro"></div>'+
+    '<div class="field"><label for="l_area">Area</label><select class="select" id="l_area" name="area">'+AREA_NAMES.map(a=>'<option>'+a+'</option>').join('')+'</select></div>'+
+    '<div class="field"><label for="l_bay">Bay number</label><input class="input" id="l_bay" name="bay" maxlength="10" placeholder="e.g. B1-045"></div>'+
+    '<div class="field"><label for="l_type">Type</label><select class="select" id="l_type" name="type">'+TYPES.map(t=>'<option>'+t+'</option>').join('')+'</select></div>'+
+    '<div class="field"><label for="l_size">Largest vehicle it fits</label><select class="select" id="l_size" name="size">'+SIZES.map(t=>'<option'+(t==='Sedan'?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
+    '<div class="field"><label for="l_hour">Price per hour (AED)</label><input class="input" id="l_hour" name="hour" inputmode="numeric" placeholder="8"></div>'+
+    '<div class="field"><label for="l_day">Price per day (AED)</label><input class="input" id="l_day" name="day" inputmode="numeric" placeholder="45"></div>'+
+    '<div class="field"><label for="l_month">Price per month (AED)</label><input class="input" id="l_month" name="month" inputmode="numeric" placeholder="800"></div>'+
+    '<div class="field wide"><span class="label">Features</span><div class="checks">'+FEATS.map(f=>'<label><input type="checkbox" name="feat" value="'+f+'"> '+f+'</label>').join('')+'</div></div>'+
+    '<div class="field wide"><label for="l_desc">Description</label><textarea class="input" id="l_desc" name="desc" maxlength="400" placeholder="How to get in, what is nearby, any rules."></textarea></div>'+
+  '</div>'+(S.formErr?'<div class="notice bad" role="alert">'+esc(S.formErr)+'</div>':'')+
+  '<div><button class="btn btn-primary" type="submit">Publish listing</button></div></form>'+
+  '<div class="stack"><h2 style="font-size:1.15rem">Your listings</h2>'+
+  (mine.length?mine.map(l=>'<div class="card bk"><div class="thumb">'+art(l)+'</div><div style="min-width:0"><strong>'+esc(l.title)+'</strong><div class="muted small">'+esc(l.area)+' · '+l.type+' · '+aed(l.hour)+'/h · '+aed(l.day)+'/day · '+aed(l.month)+'/mo</div></div><div class="acts row"><button class="btn" data-a="open:'+l.id+'">View</button><button class="btn btn-danger" data-a="dellist:'+l.id+'">Remove</button></div></div>').join(''):'<div class="card empty"><p class="muted">You have not listed a spot yet.</p></div>')+
+  '</div></div>';
+}
+function renderProfile(){
+  const u=S.user;
+  return '<div class="page-head"><h1>Profile</h1><p class="muted">Your details for this training build.</p></div>'+
+  '<div class="two"><form class="card pad stack" data-form="profile" novalidate><div class="row"><span class="avatar" aria-hidden="true">'+esc(initials(u.name))+'</span><div><strong>'+esc(u.name)+'</strong><div class="muted small">'+esc(u.email||'Guest session')+'</div></div></div>'+
+    '<div class="field"><label for="p_name">Full name</label><input class="input" id="p_name" name="name" value="'+esc(u.name)+'" maxlength="50"></div>'+
+    '<div class="field"><label for="p_email">Email</label><input class="input" id="p_email" name="email" type="email" value="'+esc(u.email||'')+'" maxlength="80"></div>'+
+    (S.profileMsg?'<div class="notice good" role="status">'+esc(S.profileMsg)+'</div>':'')+
+    '<div class="row"><button class="btn btn-primary" type="submit">Save changes</button></div></form>'+
+  '<div class="card pad stack"><h2 style="font-size:1.1rem">Your activity</h2><dl class="kv"><dt>Bookings</dt><dd>'+S.bookings.length+'</dd><dt>Saved spots</dt><dd>'+S.fav.length+'</dd><dt>Your listings</dt><dd>'+S.mine.length+'</dd><dt>Survey answers</dt><dd>'+S.surveys.length+'</dd></dl>'+
+    '<div class="row"><button class="btn" data-a="logout">'+ic('out')+' Sign out</button><button class="btn btn-danger" data-a="reset">Reset demo data</button></div>'+
+    '<p class="hint">Reset removes your bookings, saved spots, messages and listings from this browser.</p></div></div>';
+}
+function renderAuth(){
+  const up=S.authTab==='up';
+  return '<div class="auth"><section class="auth-hero">'+brand()+
+    '<h1>Rent a parking spot in Dubai in minutes.</h1>'+
+    '<p>Covered, underground and open-air bays from Marina to Deira. Book by the hour, day or month, or list the space you do not use.</p>'+
+    '<ul class="auth-points"><li>'+ic('check')+'<span>Search by area, price, vehicle size and EV charging</span></li><li>'+ic('check')+'<span>Reserve, chat with hosts and manage your bookings</span></li><li>'+ic('check')+'<span>Training build: sample listings, no real payments</span></li></ul></section>'+
+    '<div class="auth-wrap"><section class="card auth-card"><h2>'+(up?'Create your account':'Welcome back')+'</h2>'+
+    '<div class="seg" role="group" aria-label="Sign in or create account" style="width:100%"><button style="flex:1" data-a="authtab:in" aria-pressed="'+(!up)+'">Sign in</button><button style="flex:1" data-a="authtab:up" aria-pressed="'+up+'">Create account</button></div>'+
+    '<form class="stack" data-form="auth" novalidate>'+
+    (up?'<div class="field"><label for="a_name">Full name</label><input class="input" id="a_name" name="name" autocomplete="name" maxlength="50"></div>':'')+
+    '<div class="field"><label for="a_email">Email</label><input class="input" id="a_email" name="email" type="email" autocomplete="email" maxlength="80"></div>'+
+    '<div class="field"><label for="a_pass">Password</label><input class="input" id="a_pass" name="pass" type="password" autocomplete="'+(up?'new-password':'current-password')+'"><span class="hint">Any 6+ characters. It is not stored or sent anywhere.</span></div>'+
+    (S.authErr?'<div class="notice bad" role="alert">'+esc(S.authErr)+'</div>':'')+
+    '<button class="btn btn-primary btn-lg" type="submit">'+(up?'Create account':'Sign in')+'</button></form>'+
+    '<button class="btn" data-a="guest" style="width:100%">Continue as guest</button></section></div></div>';
+}
+
+function renderView(){
+  switch(S.view){
+    case 'detail': return renderDetail();
+    case 'confirm': return renderConfirm();
+    case 'favorites': return renderFavorites();
+    case 'bookings': return renderBookings();
+    case 'messages': return renderMessages();
+    case 'list': return renderList();
+    case 'profile': return renderProfile();
+    default: return renderExplore();
+  }
+}
+function render(){
+  const app=document.getElementById('app');
+  if(!S.user){app.innerHTML=renderAuth();return}
+  app.innerHTML='<div class="shell">'+renderSide()+'<div class="content"><div class="demo-strip"><b>DEMO</b> Training build: sample listings only, no real payments or bookings.</div><div class="mbrand">'+brand()+'</div><main class="main" id="main">'+renderView()+'</main></div>'+renderTabbar()+'</div>';
+  if(S.view==='messages'){const b=document.getElementById('bubbles'); if(b) b.scrollTop=b.scrollHeight}
+}
+function refreshExplore(){
+  const r=document.getElementById('results'); if(!r) return render();
+  r.innerHTML=renderResults();
+  const m=document.getElementById('mapcol'); if(m) m.innerHTML=renderMap();
+  const f=document.getElementById('filters'); if(f) f.innerHTML=filtersInner();
+  const p=document.getElementById('periodseg'); if(p) p.innerHTML=periodSeg();
+}
+function refreshBook(){
+  const l=byId(S.selected), el=document.getElementById('bookpanel');
+  if(l&&el) el.innerHTML=bookInner(l); else render();
+}
+function go(view){S.view=view;if(view!=='detail')S.selected=null;S.flash='';S.formErr='';S.profileMsg='';S.cancelAsk=null;render();window.scrollTo(0,0)}
+
+/* ---------- actions ---------- */
+const AUTO=[
+  [/price|cost|discount|cheap/i,'The listed price is fixed, but I can offer a small discount on monthly plans.'],
+  [/ev|charg/i,'If the bay has a charger it is listed under what is included. Please bring your own cable.'],
+  [/gate|access|tag|remote|enter/i,'Access details are sent after you reserve. The gate opens with a code at the barrier.'],
+  [/visit|view|see|show/i,'Happy to meet for a quick look, just tell me a day that works for you.'],
+  [/available|date|when|free/i,'The calendar on the listing is up to date. Pick any day that is not struck through.']
+];
+function autoReply(text){
+  for(let i=0;i<AUTO.length;i++) if(AUTO[i][0].test(text)) return AUTO[i][1];
+  return 'Thanks for your message. The bay is yours for the whole booking. Let me know if you need anything else.';
+}
+function ensureThread(l){
+  if(!S.threads[l.id]){
+    S.threads[l.id]={owner:l.owner,title:l.title,msgs:[{from:'host',text:'Hi, thanks for your interest in the bay at '+l.area+'. Ask me anything about access or timing.'}]};
+    save();
+  }
+  S.thread=l.id;
+}
+function act(a,v){
+  switch(a){
+    case 'nav': go(v); break;
+    case 'open': {
+      const l=byId(v); if(!l) return;
+      if(S.view!=='detail') S.prev=(S.view==='confirm'?'bookings':S.view);
+      S.selected=v; S.view='detail'; newDraft(l); S.flash=''; render(); window.scrollTo(0,0); break;
+    }
+    case 'back': go(S.prev||'explore'); break;
+    case 'fav': {
+      const i=S.fav.indexOf(v); if(i>=0) S.fav.splice(i,1); else S.fav.push(v);
+      save(); if(S.view==='explore') {refreshExplore(); const s=document.querySelector('.side'); if(s) s.outerHTML=renderSide();} else render(); break;
+    }
+    case 'type': {
+      const t=S.filters.types, i=t.indexOf(v); if(i>=0) t.splice(i,1); else t.push(v); refreshExplore(); break;
+    }
+    case 'ev': S.filters.ev=!S.filters.ev; refreshExplore(); break;
+    case 'period': S.filters.period=v; S.filters.maxPrice=0; refreshExplore(); break;
+    case 'clear': S.filters={q:'',area:'All areas',types:[],size:'Any',maxPrice:0,ev:false,period:S.filters.period,sort:'rec'}; render(); break;
+    case 'map': S.showMap=!S.showMap; render(); break;
+    case 'bperiod': {S.draft.period=v; S.draft.qty=PERIODS[v].def; S.draft.err=''; refreshBook(); break}
+    case 'qty': {
+      const P=PERIODS[S.draft.period], n=S.draft.qty+Number(v);
+      S.draft.qty=Math.max(1,Math.min(P.max,n)); S.draft.err=''; refreshBook(); break;
+    }
+    case 'day': S.draft.start=v; S.draft.err=''; refreshBook(); break;
+    case 'calprev': {let m=S.cal.m-1,y=S.cal.y; if(m<0){m=11;y--} S.cal={y:y,m:m}; refreshBook(); break}
+    case 'calnext': {let m=S.cal.m+1,y=S.cal.y; if(m>11){m=0;y++} S.cal={y:y,m:m}; refreshBook(); break}
+    case 'reserve': {
+      const l=byId(S.selected); if(!l) return;
+      const b=S.draft, plate=(b.plate||'').trim();
+      if(plate.length<2){b.err='Enter your vehicle plate so the host can recognise your car.'; refreshBook(); return}
+      if(!availability(l,b).ok){b.err='Those dates are not available.'; refreshBook(); return}
+      const q=quote(l,b);
+      const rec={id:'PNP-'+(1000+Math.floor(Math.random()*9000)),listingId:l.id,title:l.title,area:l.area,period:b.period,qty:b.qty,start:b.start,time:b.time,plate:plate,total:q.total,status:'Upcoming',created:Date.now()};
+      S.bookings.push(rec); S.lastBooking=rec.id; S.rated=0; S.ratedSent=false; save(); S.view='confirm'; render(); window.scrollTo(0,0); break;
+    }
+    case 'cancel': S.cancelAsk=v; render(); break;
+    case 'cancelno': S.cancelAsk=null; render(); break;
+    case 'cancelyes': {const b=S.bookings.find(x=>x.id===v); if(b) b.status='Cancelled'; S.cancelAsk=null; save(); render(); break}
+    case 'rate': S.rated=Number(v); render(); break;
+    case 'sendsurvey': {
+      const n=document.getElementById('srvnote');
+      S.surveys.push({rating:S.rated,note:n?n.value.slice(0,400):'',at:Date.now()}); S.ratedSent=true; save(); render(); break;
+    }
+    case 'contact': {const l=byId(v); if(!l) return; ensureThread(l); go('messages'); break}
+    case 'thread': S.thread=v; render(); break;
+    case 'dellist': {
+      S.mine=S.mine.filter(x=>x.id!==v); S.fav=S.fav.filter(x=>x!==v); save(); render(); break;
+    }
+    case 'authtab': S.authTab=v; S.authErr=''; render(); break;
+    case 'guest': S.user={name:'Guest',email:''}; save(); render(); break;
+    case 'logout': S.user=null; S.view='explore'; render(); break;
+    case 'reset': {
+      S.fav=[];S.bookings=[];S.mine=[];S.threads={};S.surveys=[];S.thread=null;save(); S.profileMsg='Demo data cleared.'; render(); break;
+    }
+  }
+}
+
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-a]'); if(!el) return;
+  const s=el.dataset.a, i=s.indexOf(':');
+  act(i<0?s:s.slice(0,i), i<0?'':s.slice(i+1));
+});
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter'&&e.key!==' ') return;
+  const el=e.target.closest&&e.target.closest('[data-a]');
+  if(el&&el===e.target&&el.tagName!=='BUTTON'){e.preventDefault();el.click()}
+});
+document.addEventListener('input',function(e){
+  const t=e.target;
+  if(t.id==='q'){S.filters.q=t.value; const r=document.getElementById('results'); if(r) r.innerHTML=renderResults(); const m=document.getElementById('mapcol'); if(m) m.innerHTML=renderMap();}
+  else if(t.id==='plate'&&S.draft){S.draft.plate=t.value.toUpperCase(); S.draft.err=''}
+});
+document.addEventListener('change',function(e){
+  const t=e.target, f=t.dataset&&t.dataset.f; if(!f) return;
+  if(f==='area'){S.filters.area=t.value; refreshExplore()}
+  else if(f==='size'){S.filters.size=t.value; refreshExplore()}
+  else if(f==='maxPrice'){S.filters.maxPrice=Number(t.value); refreshExplore()}
+  else if(f==='sort'){S.filters.sort=t.value; refreshExplore()}
+  else if(f==='time'&&S.draft){S.draft.time=t.value; refreshBook()}
+});
+document.addEventListener('submit',function(e){
+  const form=e.target, kind=form.dataset&&form.dataset.form; if(!kind) return;
+  e.preventDefault();
+  const fd=new FormData(form);
+  if(kind==='auth'){
+    const email=String(fd.get('email')||'').trim(), pass=String(fd.get('pass')||''), name=String(fd.get('name')||'').trim();
+    if(email.indexOf('@')<1||email.indexOf('.')<0){S.authErr='Enter a valid email address.';render();return}
+    if(pass.length<6){S.authErr='Use at least 6 characters for the password.';render();return}
+    if(S.authTab==='up'&&name.length<2){S.authErr='Enter your full name.';render();return}
+    S.authErr=''; S.user={name:name||email.split('@')[0],email:email}; save(); render();
+  }else if(kind==='msg'){
+    const inp=document.getElementById('msgInput'), text=inp?inp.value.trim():''; if(!text||!S.thread) return;
+    const id=S.thread; S.threads[id].msgs.push({from:'me',text:text}); save(); render();
+    setTimeout(function(){
+      if(S.threads[id]){S.threads[id].msgs.push({from:'host',text:autoReply(text)}); save(); if(S.view==='messages'&&S.thread===id) render()}
+    },1300);
+  }else if(kind==='list'){
+    const g=k=>String(fd.get(k)||'').trim(), title=g('title'), bay=g('bay');
+    const hour=Number(g('hour')), day=Number(g('day')), month=Number(g('month'));
+    if(title.length<4){S.formErr='Give the listing a title of at least 4 characters.';render();return}
+    if(!(hour>0&&day>0&&month>0)){S.formErr='Enter all three prices as numbers above zero.';render();return}
+    const l={id:'u'+Date.now(),title:title,area:g('area'),type:g('type'),size:g('size'),hour:hour,day:day,month:month,rating:0,reviews:0,features:fd.getAll('feat'),owner:S.user.name,verified:false,since:new Date().getFullYear(),bay:bay||'—',desc:g('desc')||'No description added yet.'};
+    l.rating=''; S.mine.push(l); S.formErr=''; S.flash='Listing published. Find it in Explore under '+l.area+'.'; save(); render(); window.scrollTo(0,0);
+  }else if(kind==='profile'){
+    const name=String(fd.get('name')||'').trim(), email=String(fd.get('email')||'').trim();
+    if(name.length<2){S.profileMsg='';render();return}
+    S.user={name:name,email:email}; S.profileMsg='Profile saved.'; save(); render();
+  }
+});
+
+load();
+render();
+})();
+</script>
+
+</body>
+</html>
